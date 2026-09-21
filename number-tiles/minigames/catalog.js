@@ -12,7 +12,7 @@
     validate(op){if(!M.validLayout(op.payload.layout))throw Error('숫자 배치가 올바르지 않아 시작할 수 없어요.');},
     prepareOffer(op){if(op.rulesVersion==='memory-v1'){op.config.revealMs=M.CONFIG.revealMs;op.config.rulesVersion=M.CONFIG.rulesVersion;op.rulesVersion=M.CONFIG.rulesVersion;}},
     judge:M.judge,
-    offer(op){return {target:`${op.config.revealMs/1000}초의 기억`,instruction:`1~9의 위치를 기억한 뒤 순서대로 터치하세요. 답변은 ${op.config.recallLimitMs/1000}초, 첫 오답에서 종료돼요.`,rewards:['9개 · 5배','7–8개 · 2배','5–6개 · 1배','0–4개 · 0배']};},
+    offer(op){return {target:`${op.config.revealMs/1000}초 동안 기억하세요`,description:'숫자 1~9의 위치를 기억하세요.<br>숫자가 가려지면 1부터 차례대로 터치하는 게임이에요.',instruction:`답변 시간 ${op.config.recallLimitMs/1000}초 · 첫 오답에서 종료돼요.`,rewards:['9개 · 5배','7–8개 · 2배','5–6개 · 1배','0–4개 · 0배']};},
     result(op){const r=op.result;return {title:{complete:'아홉 개, 모두 기억했어요!',wrong:'아쉽지만, 여기까지!',timeout:'답변 시간이 끝났어요',interrupted:'중단 종료'}[r.endReason],record:`${r.correctCount} / 9 정답`,detail:r.endReason==='interrupted'?'앱 중단은 정답 개수와 무관하게 0배예요.':`${r.multiplier}배 · ${r.elapsedRecallMs===null?'':(Math.ceil(r.elapsedRecallMs)/1000).toFixed(3)+'초'}${r.endReason==='wrong'?` · 숫자 ${r.correctCount+1}에서 오답`:''}`};},
     review(op){const r=op.result;return `<div class="memory-review"><p>숫자 위치 다시 보기 · ✓ 정답 / × 오답</p><div class="memory-board">${op.payload.layout.map((n,i)=>`<div class="${n<=r.correctCount?'correct':''} ${i===r.wrongCellId?'wrong':''}">${n}<small>${i===r.wrongCellId?'×':n<=r.correctCount?'✓':''}</small></div>`).join('')}</div></div>`;},
     mount(ctx){return root.MemoryView.mount(ctx);}
@@ -40,7 +40,7 @@
     create(){return {rulesVersion:V.CONFIG.rulesVersion,config:structuredClone(V.CONFIG),payload:{questions:V.questions()}};},
     validate(op){if(!V.validate(op.payload.questions,op.config))throw Error('문제 규칙을 확인할 수 없어 시작하지 않았어요.');},
     judge:V.judge,
-    offer(op){return {target:'같게, 또는 반대로',instruction:`그대로는 같은 방향, 반대로는 반대 방향! 문제당 ${op.config.answerLimitMs/1000}초 안에 ${op.config.questionCount}문제에 도전하세요.`,rewards:['10개 · 5배','7–9개 · 2배','5–6개 · 1배','0–4개 · 0배']};},
+    offer(op){return {target:'같게, 또는 반대로',description:'‘그대로’는 화살표와 같은 방향, ‘반대로’는 반대 방향!<br>규칙을 보고 방향 버튼이나 방향키로 답하세요.',instruction:`총 ${op.config.questionCount}문제 · 문제당 ${op.config.answerLimitMs/1000}초<br>첫 오답이나 시간 초과에서 종료돼요.`,rewards:['10개 · 5배','7–9개 · 2배','5–6개 · 1배','0–4개 · 0배']};},
     result(op){const r=op.result;return {title:{complete:'열 번의 판단, 모두 정답!',wrong:'방향이 엇갈렸어요',timeout:'조금 늦었어요',interrupted:'중단 종료'}[r.endReason],record:`${r.correctCount} / ${op.config.questionCount} 성공`,detail:r.endReason==='interrupted'?'앱 중단은 성공 개수와 무관하게 0배예요.':`${r.multiplier}배 · ${r.endReason==='complete'?'모든 문제 성공':r.endReason==='timeout'?'답변 시간 초과':'첫 오답에서 종료'}`};},
     review(op){const r=op.result;if(!r.failedQuestionId)return '';const index=op.payload.questions.findIndex(q=>q.questionId===r.failedQuestionId),q=op.payload.questions[index],record=r.records.at(-1);return `<div class="reverse-review"><span>${index+1}번 문제 다시 보기</span><b>${q.mode==='SAME'?'그대로':'반대로'} ${V.SYMBOL[q.direction]}</b><p>선택: ${record.selectedDirection?V.SYMBOL[record.selectedDirection]+' '+V.LABEL[record.selectedDirection]:'미응답'}<br>정답: ${V.SYMBOL[q.expectedDirection]} ${V.LABEL[q.expectedDirection]}</p></div>`;},
     mount(ctx){return root.ReverseView.mount(ctx);}
@@ -50,7 +50,7 @@
     validate(op){if(!G.validate(op.payload.contents,op.config))throw Error('금고 구성이 올바르지 않아 시작하지 않았어요.');},
     initialProgress:G.freshProgress,commands:G.COMMANDS,action:G.action,recover:G.recover,
     judge(){throw Error('금고는 저장된 개봉 결과 또는 받고 종료로만 정산합니다.');},
-    offer(op){const c=op.config;return {target:'더 열까, 여기서 멈출까?',instruction:`금고 ${c.rows*c.cols}개에 보물 ${c.rows*c.cols-c.bombCount}개, 폭탄 ${c.bombCount}개. 보물을 찾으면 현재 배당을 받거나 한 번 더 도전하세요.`,rewards:c.payoutTiers.map((t,i)=>`${i+1}개 · ${t.numerator/t.denominator}배`),warning:'시간 제한 없이 천천히 결정하세요.<br>앱을 나가도 배치와 진행이 그대로 저장돼요.'};},
+    offer(op){const c=op.config;return {target:'더 열까, 여기서 멈출까?',description:'금고를 열어 보물을 찾는 게임이에요.<br>보물을 찾으면 받고 종료하거나, 더 큰 배당에 도전하세요.',instruction:`보물 ${c.rows*c.cols-c.bombCount}개 · 폭탄 ${c.bombCount}개<br>폭탄이면 지급 0점 · 보물 ${c.autoFinishTreasures}개면 자동 종료`,rewards:c.payoutTiers.map((t,i)=>`${i+1}개 · ${t.numerator/t.denominator}배`),warning:'시간 제한 없이 천천히 결정하세요.<br>앱을 나가도 배치와 진행이 그대로 저장돼요.'};},
     result(op){const r=op.result;return {title:{bomb:'획득 실패 · 지급 0점',cashout:'현재 배당을 받았어요',complete:'보물 다섯 개, 금고 정복!'}[r.endReason],record:`보물 ${r.treasureCount}개 · ${r.multiplier}배`,detail:r.endReason==='bomb'?'폭탄을 열었어요. 베팅 점수는 추가로 차감하지 않아요.':r.endReason==='complete'?'최대 배당에 도달해 자동으로 정산했어요.':'선택한 배당으로 지급을 완료했어요.'};},
     review(op){return `<div class="vault-review"><p>정산 완료 · 전체 금고 확인</p><div class="vault-board">${op.payload.contents.map((v,i)=>`<div class="vault-review-cell ${v==='BOMB'?'bomb':'treasure'} ${op.progress.openedCellIds.includes(i)?'chosen':''}"><b>${v==='BOMB'?'✹':'◆'}</b><span>${v==='BOMB'?'폭탄':'보물'}${op.progress.openedCellIds.includes(i)?' ✓':''}</span></div>`).join('')}</div></div>`;},
     mount(ctx){return root.VaultView.mount(ctx);}

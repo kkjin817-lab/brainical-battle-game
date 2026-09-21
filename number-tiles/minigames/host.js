@@ -16,6 +16,7 @@
         const previousButton=o.type==='timer_stop'?null:this.q('#mini-start');const actionTop=previousButton?previousButton.getBoundingClientRect().top-this.container.getBoundingClientRect().top:null;
         this.container.innerHTML='<div class="mini-game"><div class="eyebrow">BONUS ROUND</div><div id="mini-runtime"></div></div>';
         this.view=plugin.mount({container:this.container.querySelector('#mini-runtime'),actionTop,actionContainer:this.container,opportunity:o,getBalance:()=>this.getData().cumulativeScore,command:(type,payload,eventId)=>this.send(type,payload,eventId),settle:payload=>this.settle(payload)});
+        this.container.scrollIntoView({block:'start',behavior:'instant'});
         if(document.hidden)this.interrupt();
       }else this.renderResult(plugin);
     }
