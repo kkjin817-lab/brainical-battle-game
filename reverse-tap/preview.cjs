@@ -1,0 +1,3 @@
+const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'..');
+http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let name=decodeURIComponent(url.pathname);if(name.endsWith('/'))name+='index.html';const file=path.resolve(root,'.'+name);if(!file.startsWith(root+path.sep)||!['.html','.js','.css'].includes(path.extname(file))||!fs.existsSync(file)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',({'.html':'text/html','.css':'text/css','.js':'text/javascript'}[path.extname(file)])+'; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(fs.readFileSync(file));}).listen(4178,'127.0.0.1',()=>console.log('Reverse Tap: http://127.0.0.1:4178/reverse-tap/'));

@@ -1,0 +1,19 @@
+(function(root){
+  'use strict';
+  const CONFIG={rulesVersion:'memory-v2',gridSize:3,revealMs:4000,countdownMs:3000,recallLimitMs:15000,inputDrainMs:150,betStep:100,rewardTiers:[{min:9,multiplier:5},{min:7,multiplier:2},{min:5,multiplier:1},{min:0,multiplier:0}]};
+  const validLayout=a=>Array.isArray(a)&&a.length===9&&new Set(a).size===9&&a.every(n=>Number.isInteger(n)&&n>=1&&n<=9);
+  function layout(random=()=>crypto.getRandomValues(new Uint32Array(1))[0]){const a=[1,2,3,4,5,6,7,8,9];for(let i=8;i>0;i--){const n=i+1,limit=Math.floor(2**32/n)*n;let v;do{v=random();}while(v>=limit);const j=v%n;[a[i],a[j]]=[a[j],a[i]];}return a;}
+  const multiplier=(k,c=CONFIG)=>c.rewardTiers.find(t=>k>=t.min).multiplier;
+  function normalizeTimestamp(stamp,now,origin){let t=Number(stamp);if(t>1e12)t-=origin;return !Number.isFinite(t)||t<=0?now:Math.min(t,now);}
+  class Session{
+    constructor(a,c=CONFIG){if(!validLayout(a))throw Error('숫자 배치가 올바르지 않습니다.');this.layout=[...a];this.config=structuredClone(c);this.phase='COUNTDOWN';this.correctCount=0;this.revealed=[];this.inputs=[];this.result=null;this.memorizeStart=null;this.recallStart=null;}
+    reveal(now){if(this.phase!=='COUNTDOWN')return;this.phase='MEMORIZE';this.memorizeStart=now;}
+    hide(now){if(this.phase!=='MEMORIZE'||now<this.memorizeStart+this.config.revealMs)return false;this.phase='RECALL';this.recallStart=now;return true;}
+    finish(reason,elapsed=null,wrongCellId=null){if(this.result)return this.result;this.phase='SETTLED';this.result={reason,correctCount:this.correctCount,wrongCellId,elapsedRecallMs:elapsed,inputs:structuredClone(this.inputs),actualRevealMs:this.recallStart===null?null:this.recallStart-this.memorizeStart};return this.result;}
+    input(cell,stamp){if(this.result||this.phase!=='RECALL'||stamp<this.recallStart)return null;const t=stamp-this.recallStart;if(t>this.config.recallLimitMs)return this.finish('timeout',this.config.recallLimitMs);if(!Number.isInteger(cell)||cell<0||cell>8||this.revealed.includes(cell))return null;this.inputs.push({cell,at:t});if(this.layout[cell]!==this.correctCount+1)return this.finish('wrong',t,cell);this.correctCount++;this.revealed.push(cell);if(this.correctCount===9)return this.finish('complete',t);if(t===this.config.recallLimitMs)return this.finish('timeout',t);return null;}
+    timeout(now){if(this.phase==='RECALL'&&now>=this.recallStart+this.config.recallLimitMs)return this.finish('timeout',this.config.recallLimitMs);return this.result;}
+    interrupt(){return this.finish('interrupted');}
+  }
+  function judge(op,input){if(!validLayout(op.payload.layout))throw Error('숫자 배치 검증 실패');const s=new Session(op.payload.layout,op.config);s.reveal(0);s.hide(op.config.revealMs);let previous=-1;for(const event of input.inputs||[]){if(s.result||!Number.isFinite(event.at)||event.at<0||event.at<previous||event.at>op.config.recallLimitMs||!Number.isInteger(event.cell)||event.cell<0||event.cell>8||s.revealed.includes(event.cell))throw Error('입력 기록 검증 실패');previous=event.at;s.input(event.cell,s.recallStart+event.at);}let r;if(input.reason==='interrupted')r={...s.result,...s.interrupt(),reason:'interrupted',elapsedRecallMs:null};else if(input.reason==='timeout')r=s.timeout(s.recallStart+op.config.recallLimitMs);else r=s.result;if(!r||r.reason!==input.reason)throw Error('종료 기록 검증 실패');return {correctCount:s.correctCount,wrongCellId:r.wrongCellId??null,elapsedRecallMs:r.elapsedRecallMs,endReason:r.reason,multiplier:r.reason==='interrupted'?0:multiplier(s.correctCount,op.config),inputs:structuredClone(input.inputs||[]),targetRevealMs:op.config.revealMs,actualRevealMs:Number.isFinite(input.actualRevealMs)?input.actualRevealMs:null,longFrameCount:input.longFrameCount||0,maxFrameMs:input.maxFrameMs||0};}
+  const api={CONFIG,validLayout,layout,multiplier,normalizeTimestamp,Session,judge};if(typeof module!=='undefined')module.exports=api;else root.MemoryEngine=api;
+})(globalThis);

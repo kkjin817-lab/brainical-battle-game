@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>수달의 조개 쟁탈전 · Otter Creek</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="masthead">
+      <a class="brand" href="./index.html" aria-label="수달의 조개 쟁탈전 홈"><span class="brand-mark">≈</span> LITTLE RIVER GAMES</a>
+      <div class="header-right"><span class="prototype">PLAYABLE PROTOTYPE · 01</span><button id="sound" class="icon-button" aria-label="소리 켜기" aria-pressed="false">소리 OFF</button></div>
+    </header>
+    <section class="title-row"><div><div class="eyebrow">A LITTLE RIVALRY ON THE RIVER</div><h1>수달의 조개 쟁탈전<span>Otter Creek</span></h1></div><p>평화로운 개울, 양보 없는 조개 정리.<br>던지고, 튕기고, 내 물가를 비워보세요.</p></section>
+    <div class="game-layout">
+      <section class="arena-card" aria-label="게임 경기장">
+        <div class="scoreboard"><div class="team"><i class="dot player-dot"></i><span>나의 물가 <strong id="player-count">5</strong></span></div><div class="clock"><span id="phase">ROUND 01</span><strong id="timer">60</strong></div><div class="team opponent"><span><strong id="ai-count">5</strong> 이웃 물가</span><i class="dot ai-dot"></i></div></div>
+        <div class="canvas-wrap">
+          <canvas id="game" width="900" height="720" aria-label="위쪽은 AI, 아래쪽은 내 물가입니다. 방향키 또는 A D로 이동하고 스페이스로 조개를 던지며 Shift로 받아칩니다."></canvas>
+          <div class="river-label"><span class="live-dot"></span><span id="current-label">물살을 살피는 중</span></div>
+          <div id="overlay" class="overlay"><div class="intro-art" aria-hidden="true">≈</div><div class="eyebrow" id="overlay-kicker">WELCOME TO OTTER CREEK</div><h2 id="overlay-title">조개는 이웃에게.<br>승리는 나에게.</h2><p id="overlay-copy">내 물가의 조개를 모두 보내고 <b>3초</b>를 버티세요.<br>60초가 지나면 조개가 적은 수달이 이겨요.</p><button id="start" class="primary-button">개울로 뛰어들기 <span>↗</span></button><small id="overlay-hint">키보드 · 마우스 · 터치로 플레이</small></div>
+          <div id="announcement" class="announcement" aria-live="polite"></div>
+        </div>
+        <div class="arena-footer"><span><i class="dot player-dot"></i> 아래쪽 주황 머플러가 나예요</span><button id="pause" class="text-button" disabled>일시정지 <kbd>P</kbd></button></div>
+      </section>
+      <aside class="sidebar">
+        <section class="guide-card"><div class="section-label">HOW TO PLAY <span>01 — 03</span></div><h2>작은 발로,<br>큰 한 방.</h2><div class="guide-step"><span class="step-number">01</span><div><h3>조개 앞으로 이동</h3><p>가까이 가면 자동으로 집어요.</p><div class="key-row"><kbd>←</kbd><kbd>→</kbd><span>또는</span><kbd>A</kbd><kbd>D</kbd></div></div></div><div class="guide-step"><span class="step-number">02</span><div><h3>이웃 물가로 던지기</h3><p>움직이며 던지면 비스듬히 날아가요.</p><div class="key-row"><kbd>SPACE</kbd><span>꾹 누르면 연속 발사</span></div></div></div><div class="guide-step"><span class="step-number">03</span><div><h3>배로 통통 받아치기</h3><p>날아오는 조개가 닿기 전에 사용!</p><div class="key-row"><kbd>SHIFT</kbd><span>재사용 대기 2.5초</span></div></div></div></section>
+        <section class="ability-card"><div><span class="section-label">BELLY BOUNCE</span><strong id="ability-text">배치기 준비 완료</strong></div><span class="ability-icon">↟</span><div class="ability-track"><div id="ability-fill"></div></div></section>
+        <section class="tip-card"><span class="tip-icon">≈</span><div><h3>물살도 우리 편?</h3><p>중앙 물살은 8초마다 방향이 바뀌어요. 궤적을 읽으면 마지막 조개까지 보낼 수 있어요.</p></div></section>
+        <div class="difficulty"><label for="difficulty">이웃 수달의 실력</label><select id="difficulty"><option value="easy">느긋한 이웃</option><option value="normal" selected>제법 하는 이웃</option><option value="hard">개울의 고수</option></select></div>
+      </aside>
+    </div>
+    <div class="touch-controls"><button id="left" aria-label="왼쪽 이동">←</button><button id="right" aria-label="오른쪽 이동">→</button><button id="bounce">배치기 <span>SHIFT</span></button><button id="throw">던지기 <span>SPACE</span></button></div>
+    <footer class="page-footer"><span>잔잔한 물결 위의 작은 승부.</span><span>10 SHELLS · 2 OTTERS · 1 PEACEFUL(?) CREEK</span></footer>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
