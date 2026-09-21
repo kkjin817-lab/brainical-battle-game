@@ -1,3 +1,4 @@
+MiniGames.registry.get('risky_vault').weight=0; // Timer-only regression fixture.
 MiniGames.registry.get('reverse_tap').weight=0; // Timer-only regression fixture.
 MiniGames.registry.get('number_memory').weight=0; // Timer-only regression fixture.
 MiniGames.registry.get('dice_roll').weight=0; // Timer-specific regression fixtures.

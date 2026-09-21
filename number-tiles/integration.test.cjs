@@ -1,3 +1,4 @@
+require('./minigames/catalog.js').get('risky_vault').weight=0; // Timer-only regression fixture.
 require('./minigames/catalog.js').get('reverse_tap').weight=0; // Timer-only regression fixture.
 require('./minigames/catalog.js').get('number_memory').weight=0; // Timer-only regression fixture.
 const assert=require('node:assert/strict'),{Game,fresh,migrate}=require('./state.js'),{Registry}=require('./minigames/registry.js');

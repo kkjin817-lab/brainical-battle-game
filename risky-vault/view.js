@@ -1,0 +1,33 @@
+(function(root){
+  'use strict';
+  const E=root.VaultEngine,points=n=>BigInt(n).toLocaleString('ko-KR');
+  root.VaultView={mount(ctx){
+    let op=ctx.opportunity,disposed=false,busy=false,animating=false,timer=0,pending=null,lastAnimated=null,activePointer=null,heldKey=null;
+    const el=ctx.container;
+    el.innerHTML=`<div class="vault-topline"><span class="eyebrow">ONE MORE, OR WALK AWAY?</span><span>시간 제한 없음</span></div><h2>위험한 금고</h2><div class="vault-stats"><div><small>베팅 점수</small><b>${points(op.bet.stake)}</b></div><div><small>현재 잔액</small><b id="vault-balance"></b></div><div><small>찾은 보물</small><b id="vault-found"></b></div></div><div class="vault-risk"><span id="vault-remaining"></span><b id="vault-risk"></b></div><div class="vault-board" role="group" aria-label="금고 12개">${Array.from({length:op.config.rows*op.config.cols},(_,i)=>`<button type="button" class="vault-cell" data-cell="${i}" aria-label="${i+1}번 닫힌 금고"><span class="vault-content"></span><span class="vault-door"><i class="vault-dial" aria-hidden="true">✣</i><small>${String(i+1).padStart(2,'0')}</small></span></button>`).join('')}</div><div class="vault-ladder">${op.config.payoutTiers.map((t,i)=>`<span data-tier="${i+1}"><small>${i+1}개</small><b>×${t.numerator/t.denominator}</b></span>`).join('')}</div><div class="vault-decision"><span id="vault-caption">첫 금고를 선택하세요</span><strong id="vault-amount">아직 미확정 지급액이 없어요</strong><p id="vault-detail">어떤 금고를 골라도 보물 확률은 같아요.</p><div class="vault-actions"><button id="vault-cashout" data-action="vault_cashout" disabled>보물을 찾으면 종료 가능</button><button id="vault-continue" data-action="vault_continue" disabled>첫 금고를 선택하세요</button></div><p id="vault-next"></p></div><p id="vault-status" class="vault-status" role="status">진행은 자동 저장돼요. 나중에 돌아와도 이어갈 수 있어요.</p><button id="vault-retry" class="vault-retry" hidden>같은 선택 저장 다시 시도</button>`;
+    const q=s=>el.querySelector(s),cells=[...el.querySelectorAll('[data-cell]')];
+    function paint(){const p=op.progress,c=op.config,k=p.treasureCount,r=E.risk(k,c),amount=E.payout(op.bet.stake,k,c),locked=busy||animating||!!pending||op.status==='SETTLED';
+      q('#vault-balance').textContent=points(ctx.getBalance());q('#vault-found').textContent=`${k} / ${c.autoFinishTreasures}`;q('#vault-remaining').textContent=`남은 금고 ${r.remaining}개 · 보물 ${r.treasures}개 · 폭탄 ${r.bombs}개`;q('#vault-risk').textContent=`다음 폭탄 ${(r.bombProbability*100).toFixed(1)}%`;
+      for(let i=0;i<cells.length;i++){const b=cells[i],opened=p.openedCellIds.includes(i),v=opened?op.payload.contents[i]:null;b.classList.toggle('opened',opened);b.classList.toggle('bomb',v==='BOMB');b.classList.toggle('treasure',v==='TREASURE');b.setAttribute('aria-label',opened?`${i+1}번 ${v==='BOMB'?'폭탄':'보물'}, 개봉 완료`:`${i+1}번 닫힌 금고`);b.setAttribute('aria-disabled',String(locked||op.status!=='SELECTING'||opened));b.querySelector('.vault-content').innerHTML=opened?`<b>${v==='BOMB'?'✹':'◆'}</b><small>${v==='BOMB'?'폭탄':'보물'}</small>`:'';}
+      el.querySelectorAll('[data-tier]').forEach(n=>n.classList.toggle('current',Number(n.dataset.tier)===k));
+      q('#vault-caption').textContent=op.status==='REVEALING'?'보물을 찾았어요!':k?'지금 멈추면 받을 금액':'첫 금고를 선택하세요';q('#vault-amount').textContent=k?`${points(amount)}점 · ×${E.tier(k,c).numerator/E.tier(k,c).denominator}`:'아직 미확정 지급액이 없어요';q('#vault-detail').textContent=k?`순이익 +${points(amount-BigInt(op.bet.stake))}점 · 종료 전에는 잔액에 더해지지 않아요.`:'어떤 금고를 골라도 보물 확률은 같아요.';
+      q('#vault-cashout').textContent=k?`${points(amount)}점 받고 종료`:'보물을 찾으면 종료 가능';q('#vault-cashout').disabled=locked||!k||!['DECIDING','SELECTING'].includes(op.status);
+      q('#vault-continue').textContent=op.status==='SELECTING'?(k?'다음 금고를 선택하세요':'첫 금고를 선택하세요'):'하나 더 열기';q('#vault-continue').disabled=locked||op.status!=='DECIDING';
+      q('#vault-next').textContent=k<c.autoFinishTreasures?`다음 보물 성공 시 ${points(E.payout(op.bet.stake,k+1,c))}점 · 폭탄이면 지급 0점`:'';
+    }
+    function reportError(){q('#vault-status').textContent='저장하지 못했어요. 마지막 저장 상태를 유지하며 같은 동작을 다시 시도할 수 있어요.';q('#vault-retry').hidden=false;}
+    async function send(){if(disposed||busy||!pending)return;busy=true;paint();const fixed=pending;try{await ctx.command(fixed.type,fixed.payload,fixed.eventId);if(disposed)return;if(pending===fixed)pending=null;q('#vault-retry').hidden=true;q('#vault-status').textContent='진행이 저장됐어요. 앱을 나가도 그대로 이어갈 수 있어요.';}catch{if(!disposed)reportError();}finally{busy=false;if(!disposed)paint();}}
+    function act(type,payload={}){if(disposed||busy||animating||pending)return;pending={type,payload:{...payload,expectedVersion:op.progress.version},eventId:root.MiniGames.uid()};send();}
+    function animate(done){const reveal=op.progress.pendingReveal;if(!reveal||lastAnimated===reveal.selectionEventId){done();return;}lastAnimated=reveal.selectionEventId;animating=true;paint();const door=cells[reveal.cellId].querySelector('.vault-door');door.animate([{transform:'rotateY(0deg)',opacity:1},{transform:'rotateY(-105deg)',opacity:0}],{duration:op.config.revealMs,easing:'ease-in-out'});timer=setTimeout(()=>{animating=false;if(disposed)return;done();},op.config.revealMs);}
+    function update(next){op=next;paint();if(op.status==='REVEALING')animate(()=>{paint();act('vault_revealed');});}
+    function commandFrom(target){const cell=target.closest('[data-cell]');if(cell){if(op.status==='SELECTING'&&!op.progress.openedCellIds.includes(Number(cell.dataset.cell)))act('vault_open',{cellId:Number(cell.dataset.cell)});return;}const b=target.closest('[data-action]');if(b&&!b.disabled)act(b.dataset.action);}
+    el.onpointerdown=e=>{if(activePointer!==null||heldKey!==null||e.button!==0)return;const target=e.target.closest('[data-cell],[data-action]');if(!target)return;activePointer=e.pointerId;el.setPointerCapture(e.pointerId);e.preventDefault();commandFrom(target);};
+    el.onpointerup=el.onpointercancel=el.onlostpointercapture=e=>{if(activePointer===e.pointerId)activePointer=null;};
+    el.onclick=e=>{if(e.detail===0&&activePointer===null&&heldKey===null)commandFrom(e.target);};
+    el.onkeydown=e=>{if(!['Enter',' '].includes(e.key)||!e.target.closest('[data-cell],[data-action]'))return;e.preventDefault();if(e.repeat||heldKey!==null||activePointer!==null)return;heldKey=e.key;commandFrom(e.target);};
+    function release(e){if(e.key===heldKey){e.preventDefault();heldKey=null;}}document.addEventListener('keyup',release);
+    q('#vault-retry').onclick=()=>send();
+    update(op);
+    return {update,showSettled(next,done){op=next;pending=null;busy=false;paint();if(op.result.endReason==='cashout')done();else animate(done);},dispose(){disposed=true;clearTimeout(timer);document.removeEventListener('keyup',release);}};
+  }};
+})(globalThis);

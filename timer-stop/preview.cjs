@@ -1,3 +1,3 @@
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
-const allowed=new Set(['index.html','style.css','engine.js','storage.js','app.js','tests.html','browser-tests.js']);
+const allowed=new Set(['index.html','style.css','theme.css','engine.js','storage.js','app.js','tests.html','browser-tests.js']);
 http.createServer((req,res)=>{const name=req.url.split('?')[0].replace(/^\//,'')||'index.html';if(!allowed.has(name)||!fs.existsSync(path.join(__dirname,name))){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',(name.endsWith('.html')?'text/html':name.endsWith('.css')?'text/css':'text/javascript')+'; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(fs.readFileSync(path.join(__dirname,name)));}).listen(4176,'127.0.0.1',()=>console.log('Timer Stop: http://127.0.0.1:4176'));

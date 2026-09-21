@@ -1,7 +1,7 @@
 (function (root) {
   'use strict';
   const CONFIG = Object.freeze({
-    rulesVersion: 'timer-stop-v2', targetValuesMs: [1000,2000,3000,4000,5000,6000,7000,8000,9000,10000],
+    rulesVersion: 'timer-stop-v3', targetValuesMs: [1000,2000,3000,4000,5000,6000],
     exactMaxMs: 50, doubleMaxMs: 100, refundMaxMs: 200,
     multipliers: { exact: 3, double: 2, refund: 1, miss: 0 }, betStep: 100, countdownMs: 3000,
     inputDrainMs: 150
@@ -59,6 +59,7 @@
   function upgradeOffered(original) {
     if(original.opportunity.status!=='OFFERED'||original.opportunity.rulesVersion===CONFIG.rulesVersion)return clone(original);
     const d=clone(original);d.opportunity.config=clone(CONFIG);d.opportunity.rulesVersion=CONFIG.rulesVersion;
+    if(!CONFIG.targetValuesMs.includes(d.opportunity.targetMs))d.opportunity.targetMs=target();
     event(d,uid(),'offered_rules_updated',{rulesVersion:CONFIG.rulesVersion});return d;
   }
   function event(data, id, type, extra = {}) { data.events.push({ eventId: id, miniGameId: data.opportunity.miniGameId, type, at: new Date().toISOString(), ...extra }); }
